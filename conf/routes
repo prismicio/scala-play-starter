@@ -3,7 +3,7 @@
 # ~~~~
 
 # Home page
-GET     /                                           controllers.Application.index(ref: Option[String])
+GET     /                                           controllers.Application.index(ref: Option[String] ?= None)
 
 # Document detail
 GET     /documents/$id<[-_a-zA-Z0-9]{16}>/:slug     controllers.Application.detail(id, slug, ref: Option[String] ?= None)

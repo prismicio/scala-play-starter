@@ -51,12 +51,30 @@ object Prismic extends Controller {
   // -- Define a `Prismic request` that contain both the original request and the Prismic call context
   case class Request[A](request: play.api.mvc.Request[A], ctx: Context) extends WrappedRequest(request)
 
+  // -- A Prismic context that help to keep the reference to useful primisc.io contextual data
+  case class Context(api: Api, ref: String, accessToken: Option[String], linkResolver: DocumentLinkResolver) {
+    def maybeRef = Option(ref).filterNot(_ == api.master.ref)
+    def hasPrivilegedAccess = accessToken.isDefined
+  }
+  
+  object Context {
+    implicit def fromRequest(implicit req: Request[_]): Context = req.ctx
+  }
+
+  // -- Build a Prismic context
+  def buildContext(ref: Option[String])(implicit request: RequestHeader) = {
+    for {
+      api <- apiHome(request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token")))
+    } yield {
+      Context(api, ref.map(_.trim).filterNot(_.isEmpty).getOrElse(api.master.ref), request.session.get(ACCESS_TOKEN), Application.linkResolver(api, ref.filterNot(_ == api.master.ref))(request))
+    }
+  }
+
   // -- Action builder
-  def action[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[SimpleResult]) = Action.async(bodyParser) { request =>
+  def action[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[SimpleResult]) = Action.async(bodyParser) { implicit request =>
     (
       for {
-        api <- apiHome(request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token")))
-        ctx = Context(api, ref.map(_.trim).filterNot(_.isEmpty).getOrElse(api.master.ref), request.session.get(ACCESS_TOKEN), Application.linkResolver(api, ref.filterNot(_ == api.master.ref))(request))
+        ctx <- buildContext(ref)
         result <- block(Request(request, ctx))
       } yield result
     ).recover {
@@ -70,16 +88,6 @@ object Prismic extends Controller {
 
   // -- Retrieve the Prismic Context from a request handled by an built using Prismic.action
   def ctx(implicit req: Request[_]) = req.ctx
-
-  // -- A Prismic context that help to keep the reference to useful primisc.io contextual data
-  case class Context(api: Api, ref: String, accessToken: Option[String], linkResolver: DocumentLinkResolver) {
-    def maybeRef = Option(ref).filterNot(_ == api.master.ref)
-    def hasPrivilegedAccess = accessToken.isDefined
-  }
-  
-  object Context {
-    implicit def fromRequest(implicit req: Request[_]): Context = req.ctx
-  }
   
   // -- Fetch the API entry document
   def apiHome(accessToken: Option[String] = None) = Api.get(config("prismic.api"), accessToken = accessToken, cache = Cache, logger = Logger)
