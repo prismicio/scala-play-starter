@@ -1,4 +1,4 @@
-## Starter Play with Scala projects
+## Starter for Play with Scala projects
 
 This is a blank [Play framework](http://www.playframework.com) project that will connect to any [prismic.io](https://prismic.io) repository. It uses the prismic.io Scala developement kit, and provide a few helpers to integrate with the Play framework.
 
