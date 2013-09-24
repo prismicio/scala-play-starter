@@ -35,7 +35,7 @@ object Application extends Controller {
       maybeDocument <- getDocument(id)
     } yield {
       checkSlug(maybeDocument, slug) {
-        case Left(newSlug) => MovedPermanently(routes.Application.detail(id, newSlug).url)
+        case Left(newSlug) => MovedPermanently(routes.Application.detail(id, newSlug, ref).url)
         case Right(document) => Ok(views.html.detail(document))
       }
     } 
