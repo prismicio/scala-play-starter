@@ -15,10 +15,15 @@ object Application extends Controller {
   // -- Resolve links to documents
   def linkResolver(api: Api, ref: Option[String])(implicit request: RequestHeader) = DocumentLinkResolver(api) { 
     case (Fragment.DocumentLink(id, docType, tags, slug, false), maybeBookmarked) => routes.Application.detail(id, slug, ref).absoluteURL()
+    case (link@Fragment.DocumentLink(_, _, _, _, true), _) => routes.Application.brokenLink(ref).absoluteURL()
   }
 
   // -- Page not found
-  def PageNotFound(implicit ctx: Prismic.Context) = NotFound("Page not found")
+  def PageNotFound(implicit ctx: Prismic.Context) = NotFound(views.html.pageNotFound())
+
+  def brokenLink(ref: Option[String]) = Prismic.action(ref) { implicit request =>
+    Future.successful(PageNotFound)
+  }
 
   // -- Home page
   def index(ref: Option[String]) = Prismic.action(ref) { implicit request =>

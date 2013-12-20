@@ -1,0 +1,19 @@
+@()(implicit ctx: Prismic.Context)
+
+@main("Document not found") {
+
+  <section>
+    <h1>Page not found</h1>
+  </section>
+
+  <section>
+    <p>
+      We can't seem to find what you are looking for.
+    </p>
+
+    <p>
+      <a href="@routes.Application.index(ref = ctx.maybeRef)">Go to the home page</a>
+    </p>
+  </section>
+
+}
