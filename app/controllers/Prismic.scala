@@ -82,8 +82,8 @@ object Prismic extends Controller {
           result <- block(Request(request, ctx))
         } yield result
       }.recover {
-        case ApiError(Error.INVALID_TOKEN, _)        => Redirect(routes.Prismic.signin).withNewSession
-        case ApiError(Error.AUTHORIZATION_NEEDED, _) => Redirect(routes.Prismic.signin).withNewSession
+        case InvalidToken(_, url)        => Redirect(routes.Prismic.signin).withNewSession
+        case AuthorizationNeeded(_, url) => Redirect(routes.Prismic.signin).withNewSession
       }
     }
 
@@ -131,8 +131,11 @@ object Prismic extends Controller {
   // --
 
   def signin = Action.async { implicit req =>
-    for (api <- apiHome()) yield {
-      Redirect(api.oauthInitiateEndpoint, Map(
+    apiHome().map(_.oauthInitiateEndpoint).recover {
+      case InvalidToken(_, url)        => url
+      case AuthorizationNeeded(_, url) => url
+    } map { url =>
+      Redirect(url, Map(
         "client_id" -> Seq(config("prismic.clientId")),
         "redirect_uri" -> Seq(callbackUrl),
         "scope" -> Seq("master+releases")
