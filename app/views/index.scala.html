@@ -1,30 +1,44 @@
-@(someDocuments: Seq[io.prismic.Document])(implicit ctx: Prismic.Context)
+@(response: io.prismic.Response)(implicit ctx: Prismic.Context)
 
 @main("All documents") {
 
-    <form action="@routes.Application.search(ref = ctx.maybeRef)" method="GET">
-      <input type="text" name="q" value="">
-      <input type="submit" value="Search">
-    </form>
+  <form action="@routes.Application.search(ref = ctx.maybeRef)" method="GET">
+    <input type="text" name="q" value="">
+    <input type="submit" value="Search">
+  </form>
 
-    <hr>
+  <hr>
 
-    <h2>
-      @someDocuments.size match {
-        case 0 => { No documents found }
-        case 1 => { One document found }
-        case n => { @n documents found }
+  <h2>
+    @response.resultsSize match {
+      case 0 => { No documents found }
+      case 1 => { One document found }
+      case n => { Showing @n out of @response.totalResultsSize documents }
+    }
+  </h2>
+
+  <ul>
+    @response.results.map { document =>
+      <li>
+        <a href="@routes.Application.detail(document.id, document.slug, ctx.maybeRef)">
+          @document.slug
+        </a>
+      </li>
+    }
+  </ul>
+
+  @if(response.totalPages > 1) {
+    <div>
+      @if(response.prevPage.isDefined) {
+      <a href="@routes.Application.index(ctx.maybeRef, response.page - 1)">Previous</a>
+      } else {
+      <span>Previous</span>
       }
-    </h2>
-
-    <ul>
-      @someDocuments.map { document =>
-        <li>
-          <a href="@routes.Application.detail(document.id, document.slug, ctx.maybeRef)">
-            @document.slug
-          </a>
-        </li>
+      @if(response.nextPage.isDefined) {
+      <a href="@routes.Application.index(ctx.maybeRef, response.page + 1)">Next</a>
+      } else {
+      <span>Next</span>
       }
-    </ul>
-
+    </div>
+  }
 }

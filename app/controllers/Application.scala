@@ -26,9 +26,9 @@ object Application extends Controller {
   }
 
   // -- Home page
-  def index(ref: Option[String]) = Prismic.action(ref) { implicit request =>
-    ctx.api.forms("everything").ref(ctx.ref).submit() map { response =>
-      Ok(views.html.index(response.results))
+  def index(ref: Option[String], page: Int) = Prismic.action(ref) { implicit request =>
+    ctx.api.forms("everything").ref(ctx.ref).pageSize(10).page(page).submit() map { response =>
+      Ok(views.html.index(response))
     }
   }
 
