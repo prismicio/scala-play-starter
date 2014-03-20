@@ -9,7 +9,7 @@ GET     /                                           controllers.Application.inde
 GET     /documents/$id<[-_a-zA-Z0-9]{16}>/:slug     controllers.Application.detail(id, slug, ref: Option[String] ?= None)
 
 # Basic search
-GET     /search                                     controllers.Application.search(q: Option[String] ?= None, ref: Option[String] ?= None)
+GET     /search                                     controllers.Application.search(q: Option[String] ?= None, ref: Option[String] ?= None, page: Int ?= 1)
 
 # Prismic.io OAuth
 GET     /signin                                     controllers.Prismic.signin

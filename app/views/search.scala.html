@@ -1,25 +1,40 @@
-@(q: Option[String], documents: Seq[io.prismic.Document])(implicit ctx: Prismic.Context)
+@(q: Option[String], response: io.prismic.Response)(implicit ctx: Prismic.Context)
 
 @main("Search results") {
 
-    <h1>
-      @documents.size match {
-        case 0 => { No results found }
-        case 1 => { One document found }
-        case n => { @n documents found }
-      }
-    </h1>
+  <h1>
+    @response.resultsSize match {
+      case 0 => { No results found }
+      case 1 => { One document found }
+      case n => { Showing @n out of @response.totalResultsSize documents }
+    }
+  </h1>
 
-    <ul>
-      @documents.map { document =>
-        <li>
-          <a href="@ctx.linkResolver(document)">@document.slug</a>
-        </li>
-      }
-    </ul>
+  <ul>
+    @response.results.map { document =>
+      <li>
+        <a href="@ctx.linkResolver(document)">@document.slug</a>
+      </li>
+    }
+  </ul>
 
-    <p>
-      <a href="@routes.Application.index(ctx.maybeRef)">Back to home</a>
-    </p>
+  @if(response.totalPages > 1) {
+    <div>
+      @if(response.prevPage.isDefined) {
+      <a href="@routes.Application.search(q, ctx.maybeRef, response.page - 1)">Previous</a>
+      } else {
+      <span>Previous</span>
+      }
+      @if(response.nextPage.isDefined) {
+      <a href="@routes.Application.search(q, ctx.maybeRef, response.page + 1)">Next</a>
+      } else {
+      <span>Next</span>
+      }
+    </div>
+  }
+
+  <p>
+    <a href="@routes.Application.index(ctx.maybeRef)">Back to home</a>
+  </p>
 
 }
