@@ -14,10 +14,10 @@ object ApplicationBuild extends Build {
   val main = play.Project(appName, appVersion, appDependencies).settings(
 
     // Prismic.io Maven repository
-    resolvers += "Prismic.io kits" at "https://github.com/prismicio/repository/raw/master/maven/",
+    resolvers += "Prismic.io kits" at "https://s3.amazonaws.com/prismic-maven-kits/repository/maven/",
 
     // The Scala kit
-    libraryDependencies += "io.prismic" %% "scala-kit" % "1.0-M8"
+    libraryDependencies += "io.prismic" %% "scala-kit" % "1.0-M12"
   )
 
 }
