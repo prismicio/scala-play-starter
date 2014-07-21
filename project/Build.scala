@@ -1,23 +1,21 @@
-import sbt._
-import Keys._
-import play.Project._
+import sbt._, Keys._
+import play._
 
 object ApplicationBuild extends Build {
 
   val appName         = "prismicio-starter"
-  val appVersion      = "1.0-SNAPSHOT"
+  val appVersion      = "1.1"
 
-  val appDependencies = Seq(
-    // Add your project dependencies here,
-  )
+  val main = Project(appName, file(".")) enablePlugins PlayScala settings (
 
-  val main = play.Project(appName, appVersion, appDependencies).settings(
+    version := appVersion,
+    scalaVersion := "2.11.1",
 
     // Prismic.io Maven repository
-    resolvers += "Prismic.io kits" at "https://s3.amazonaws.com/prismic-maven-kits/repository/maven/",
+    resolvers += "Prismic.io kits" at "https://github.com/prismicio/repository/raw/master/maven/",
 
     // The Scala kit
-    libraryDependencies += "io.prismic" %% "scala-kit" % "1.0-M12"
+    libraryDependencies += "io.prismic" %% "scala-kit" % "1.0-M16"
   )
 
 }

@@ -74,7 +74,7 @@ object Prismic extends Controller {
     }
 
   // -- Action builder
-  def action[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[SimpleResult]) =
+  def bodyAction[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[Result]) =
     Action.async(bodyParser) { implicit request =>
       {
         for {
@@ -88,8 +88,8 @@ object Prismic extends Controller {
     }
 
   // -- Alternative action builder for the default body parser
-  def action(ref: Option[String] = None)(block: Prismic.Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] =
-    action(parse.anyContent)(ref)(block)
+  def action(ref: Option[String] = None)(block: Prismic.Request[AnyContent] => Future[Result]): Action[AnyContent] =
+    bodyAction(parse.anyContent)(ref)(block)
 
   // -- Retrieve the Prismic Context from a request handled by an built using Prismic.action
   def ctx(implicit req: Request[_]) = req.ctx
@@ -118,7 +118,7 @@ object Prismic extends Controller {
     ctx.api.bookmarks.get(bookmark).map(id => getDocument(id)).getOrElse(Future.successful(None))
 
   // -- Helper: Check if the slug is valid and redirect to the most recent version id needed
-  def checkSlug(document: Option[Document], slug: String)(callback: Either[String, Document] => SimpleResult)(implicit r: Prismic.Request[_]) =
+  def checkSlug(document: Option[Document], slug: String)(callback: Either[String, Document] => Result)(implicit r: Prismic.Request[_]) =
     document.collect {
       case document if document.slug == slug         => callback(Right(document))
       case document if document.slugs.contains(slug) => callback(Left(document.slug))
