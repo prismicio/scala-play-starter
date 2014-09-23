@@ -47,7 +47,7 @@ object Application extends Controller {
   // -- Basic Search
   def search(q: Option[String], ref: Option[String], page: Int) = Prismic.action(ref) { implicit request =>
     ctx.api.forms("everything")
-      .query(s"""[[:d = fulltext(document, "${q.getOrElse("")}")]]""")
+      .query(Predicate.fulltext("document", q.getOrElse("")))
       .ref(ctx.ref).pageSize(10).page(page).submit() map { response =>
         Ok(views.html.search(q, response))
       }

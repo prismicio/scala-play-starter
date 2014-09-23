@@ -101,7 +101,7 @@ object Prismic extends Controller {
   // -- Helper: Retrieve a single document by Id
   def getDocument(id: String)(implicit ctx: Prismic.Context): Future[Option[Document]] =
     ctx.api.forms("everything")
-      .query(s"""[[:d = at(document.id, "$id")]]""")
+      .query(Predicate.at("document.id", id))
       .ref(ctx.ref).submit() map (_.results.headOption)
 
   // -- Helper: Retrieve several documents by Id
@@ -109,7 +109,7 @@ object Prismic extends Controller {
     ids match {
       case Nil => Future.successful(Nil)
       case ids => ctx.api.forms("everything")
-        .query(s"""[[:d = any(document.id, ${ids.mkString("[\"", "\",\"", "\"]")})]]""")
+        .query(Predicate.any("document.id", ids))
         .ref(ctx.ref).submit() map (_.results)
     }
 
