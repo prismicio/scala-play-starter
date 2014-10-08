@@ -1,0 +1,7 @@
+@(implicit ctx: Prismic.Context)
+@ctx.api.experiment.flatMap(_.googleId).map { googleId =>
+<script src="//www.google-analytics.com/cx/api.js?experiment=@googleId"></script>
+<script src="https://prismic.io/...xxxxxx/javascripts/experiment.js"></script>
+<script>prismic.startExperiment("@googleId", cxApi);</script>
+}
+

@@ -64,14 +64,15 @@ object Prismic extends Controller {
   }
 
   // -- Build a Prismic context
-  def buildContext(ref: Option[String])(implicit request: RequestHeader) =
-    apiHome(request.session.get(ACCESS_TOKEN)
-      .orElse(Play.configuration.getString("prismic.token"))) map { api =>
-      Context(api,
-        ref.map(_.trim).filterNot(_.isEmpty).getOrElse(api.master.ref),
-        request.session.get(ACCESS_TOKEN),
-        Application.linkResolver(api, ref.filterNot(_ == api.master.ref))(request))
+  def buildContext(queryRef: Option[String])(implicit request: RequestHeader) = {
+    val token = request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token"))
+    apiHome(token) map { api =>
+      val ref = queryRef orElse {
+        request.cookies.get(Experiment.cookieName) map (_.value) flatMap api.experiments.refFromCookie
+      } getOrElse api.master.ref
+      Context(api, ref, token, Application.linkResolver(api, queryRef)(request))
     }
+  }
 
   // -- Action builder
   def bodyAction[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[Result]) =
