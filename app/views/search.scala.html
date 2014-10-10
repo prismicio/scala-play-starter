@@ -21,12 +21,12 @@
   @if(response.totalPages > 1) {
     <div>
       @if(response.prevPage.isDefined) {
-      <a href="@routes.Application.search(q, ctx.maybeRef, response.page - 1)">Previous</a>
+      <a href="@routes.Application.search(q, ctx.queryRef, response.page - 1)">Previous</a>
       } else {
       <span>Previous</span>
       }
       @if(response.nextPage.isDefined) {
-      <a href="@routes.Application.search(q, ctx.maybeRef, response.page + 1)">Next</a>
+      <a href="@routes.Application.search(q, ctx.queryRef, response.page + 1)">Next</a>
       } else {
       <span>Next</span>
       }
@@ -34,7 +34,7 @@
   }
 
   <p>
-    <a href="@routes.Application.index(ctx.maybeRef)">Back to home</a>
+    <a href="@routes.Application.index(ctx.queryRef)">Back to home</a>
   </p>
 
 }

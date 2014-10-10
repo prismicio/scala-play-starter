@@ -54,8 +54,7 @@ object Prismic extends Controller {
   case class Request[A](request: play.api.mvc.Request[A], ctx: Context) extends WrappedRequest(request)
 
   // -- A Prismic context that help to keep the reference to useful primisc.io contextual data
-  case class Context(api: Api, ref: String, accessToken: Option[String], linkResolver: DocumentLinkResolver) {
-    def maybeRef = Option(ref).filterNot(_ == api.master.ref)
+  case class Context(api: Api, ref: String, queryRef: Option[String], accessToken: Option[String], linkResolver: DocumentLinkResolver) {
     def hasPrivilegedAccess = accessToken.isDefined
   }
 
@@ -70,7 +69,7 @@ object Prismic extends Controller {
       val ref = queryRef orElse {
         request.cookies.get(Experiment.cookieName) map (_.value) flatMap api.experiments.refFromCookie
       } getOrElse api.master.ref
-      Context(api, ref, token, Application.linkResolver(api, queryRef)(request))
+      Context(api, ref, queryRef, token, Application.linkResolver(api, queryRef)(request))
     }
   }
 
