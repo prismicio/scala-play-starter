@@ -13,39 +13,39 @@ object Application extends Controller {
   import Prismic._
 
   // -- Resolve links to documents
-  def linkResolver(api: Api, ref: Option[String])(implicit request: RequestHeader) = DocumentLinkResolver(api) {
-    case (Fragment.DocumentLink(id, docType, tags, slug, false), maybeBookmarked) => routes.Application.detail(id, slug, ref).absoluteURL()
-    case (link@Fragment.DocumentLink(_, _, _, _, true), _)                        => routes.Application.brokenLink(ref).absoluteURL()
+  def linkResolver(api: Api)(implicit request: RequestHeader) = DocumentLinkResolver(api) {
+    case (Fragment.DocumentLink(id, docType, tags, slug, false), maybeBookmarked) => routes.Application.detail(id, slug).absoluteURL()
+    case (link@Fragment.DocumentLink(_, _, _, _, true), _)                        => routes.Application.brokenLink().absoluteURL()
   }
 
   // -- Page not found
   def PageNotFound(implicit ctx: Prismic.Context) = NotFound(views.html.pageNotFound())
 
-  def brokenLink(ref: Option[String]) = Prismic.action(ref) { implicit request =>
+  def brokenLink = Prismic.action { implicit request =>
     Future.successful(PageNotFound)
   }
 
   // -- Home page
-  def index(ref: Option[String], page: Int) = Prismic.action(ref) { implicit request =>
+  def index(page: Int) = Prismic.action { implicit request =>
     ctx.api.forms("everything").ref(ctx.ref).pageSize(10).page(page).submit() map { response =>
       Ok(views.html.index(response))
     }
   }
 
   // -- Document detail
-  def detail(id: String, slug: String, ref: Option[String]) = Prismic.action(ref) { implicit request =>
+  def detail(id: String, slug: String) = Prismic.action { implicit request =>
     for {
       maybeDocument <- getDocument(id)
     } yield {
       checkSlug(maybeDocument, slug) {
-        case Left(newSlug)   => MovedPermanently(routes.Application.detail(id, newSlug, ref).url)
+        case Left(newSlug)   => MovedPermanently(routes.Application.detail(id, newSlug).url)
         case Right(document) => Ok(views.html.detail(document))
       }
     }
   }
 
   // -- Basic Search
-  def search(q: Option[String], ref: Option[String], page: Int) = Prismic.action(ref) { implicit request =>
+  def search(q: Option[String], page: Int) = Prismic.action { implicit request =>
     ctx.api.forms("everything")
       .query(Predicate.fulltext("document", q.getOrElse("")))
       .ref(ctx.ref).pageSize(10).page(page).submit() map { response =>

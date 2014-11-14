@@ -46,15 +46,11 @@ object Prismic extends Controller {
   private def config(key: String) =
     Play.configuration.getString(key).getOrElse(sys.error(s"Missing configuration [$key]"))
 
-  // Compute the callback URL to use for the OAuth worklow
-  private def callbackUrl(implicit rh: RequestHeader) =
-    routes.Prismic.callback(code = None, redirect_uri = rh.headers.get("referer")).absoluteURL()
-
   // -- Define a `Prismic request` that contain both the original request and the Prismic call context
   case class Request[A](request: play.api.mvc.Request[A], ctx: Context) extends WrappedRequest(request)
 
   // -- A Prismic context that help to keep the reference to useful primisc.io contextual data
-  case class Context(api: Api, ref: String, queryRef: Option[String], accessToken: Option[String], linkResolver: DocumentLinkResolver) {
+  case class Context(api: Api, ref: String, accessToken: Option[String], linkResolver: DocumentLinkResolver) {
     def hasPrivilegedAccess = accessToken.isDefined
   }
 
@@ -63,33 +59,30 @@ object Prismic extends Controller {
   }
 
   // -- Build a Prismic context
-  def buildContext(queryRef: Option[String])(implicit request: RequestHeader) = {
+  def buildContext()(implicit request: RequestHeader) = {
     val token = request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token"))
     apiHome(token) map { api =>
-      val ref = queryRef orElse {
+      val ref = {
         request.cookies.get(Experiment.cookieName) map (_.value) flatMap api.experiments.refFromCookie
       } getOrElse api.master.ref
-      Context(api, ref, queryRef, token, Application.linkResolver(api, queryRef)(request))
+      Context(api, ref, token, Application.linkResolver(api)(request))
     }
   }
 
   // -- Action builder
-  def bodyAction[A](bodyParser: BodyParser[A])(ref: Option[String] = None)(block: Prismic.Request[A] => Future[Result]) =
+  def bodyAction[A](bodyParser: BodyParser[A])(block: Prismic.Request[A] => Future[Result]) =
     Action.async(bodyParser) { implicit request =>
       {
         for {
-          ctx <- buildContext(ref)
+          ctx <- buildContext()
           result <- block(Request(request, ctx))
         } yield result
-      }.recover {
-        case InvalidToken(_, url)        => Redirect(routes.Prismic.signin).withNewSession
-        case AuthorizationNeeded(_, url) => Redirect(routes.Prismic.signin).withNewSession
       }
     }
 
   // -- Alternative action builder for the default body parser
-  def action(ref: Option[String] = None)(block: Prismic.Request[AnyContent] => Future[Result]): Action[AnyContent] =
-    bodyAction(parse.anyContent)(ref)(block)
+  def action(block: Prismic.Request[AnyContent] => Future[Result]): Action[AnyContent] =
+    bodyAction(parse.anyContent)(block)
 
   // -- Retrieve the Prismic Context from a request handled by an built using Prismic.action
   def ctx(implicit req: Request[_]) = req.ctx
@@ -126,49 +119,12 @@ object Prismic extends Controller {
       Application.PageNotFound
     }
 
-  // --
-  // -- OAuth actions
-  // --
-
-  def signin = Action.async { implicit req =>
-    apiHome().map(_.oauthInitiateEndpoint).recover {
-      case InvalidToken(_, url)        => url
-      case AuthorizationNeeded(_, url) => url
-    } map { url =>
-      Redirect(url, Map(
-        "client_id" -> Seq(config("prismic.clientId")),
-        "redirect_uri" -> Seq(callbackUrl),
-        "scope" -> Seq("master+releases")
-      ))
+  // -- Preview Action
+  def preview(token: String) = Prismic.action { implicit req =>
+    ctx.api.previewSession(token, ctx.linkResolver, routes.Application.index().url).map { redirectUrl =>
+      Redirect(redirectUrl).withCookies(Cookie(io.prismic.Prismic.previewCookie, token, path = "/", maxAge = Some(30 * 60 * 1000), httpOnly = false))
     }
   }
 
-  def signout = Action {
-    Redirect(routes.Application.index(ref = None)).withNewSession
-  }
-
-  def callback(code: Option[String], redirect_uri: Option[String]) =
-    Action.async { implicit req =>
-      (
-        for {
-          api <- apiHome()
-          tokenResponse <- WS.url(api.oauthTokenEndpoint).post(Map(
-            "grant_type" -> Seq("authorization_code"),
-            "code" -> Seq(code.get),
-            "redirect_uri" -> Seq(callbackUrl),
-            "client_id" -> Seq(config("prismic.clientId")),
-            "client_secret" -> Seq(config("prismic.clientSecret"))
-          )).filter(_.status == 200).map(_.json)
-        } yield {
-          Redirect(redirect_uri.getOrElse(routes.Application.index(ref = None).url)).withSession(
-            ACCESS_TOKEN -> (tokenResponse \ "access_token").as[String]
-          )
-        }
-      ).recover {
-          case x: Throwable =>
-            Logger('ERROR, s"""Can't retrieve the OAuth token for code $code: ${x.getMessage}""".stripMargin)
-            Unauthorized("Can't sign you in")
-        }
-    }
 
 }

@@ -2,7 +2,7 @@
 
 @main("All documents") {
 
-  <form action="@routes.Application.search(ref = ctx.queryRef)" method="GET">
+  <form action="@routes.Application.search()" method="GET">
     <input type="text" name="q" value="">
     <input type="submit" value="Search">
   </form>
@@ -20,7 +20,7 @@
   <ul>
     @response.results.map { document =>
       <li>
-        <a href="@routes.Application.detail(document.id, document.slug, ctx.queryRef)">
+        <a href="@routes.Application.detail(document.id, document.slug)">
           @document.slug
         </a>
       </li>
@@ -30,12 +30,12 @@
   @if(response.totalPages > 1) {
     <div>
       @if(response.prevPage.isDefined) {
-      <a href="@routes.Application.index(ctx.queryRef, response.page - 1)">Previous</a>
+      <a href="@routes.Application.index(response.page - 1)">Previous</a>
       } else {
       <span>Previous</span>
       }
       @if(response.nextPage.isDefined) {
-      <a href="@routes.Application.index(ctx.queryRef, response.page + 1)">Next</a>
+      <a href="@routes.Application.index(response.page + 1)">Next</a>
       } else {
       <span>Next</span>
       }

@@ -8,25 +8,19 @@
         <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
         <script src="@routes.Assets.at("javascripts/jquery-1.9.0.min.js")" type="text/javascript"></script>
+        @** Required for Previews and Experiments *@
+        <script src="//static.cdn.prismic.io/prismic.min.js"></script>
     </head>
     <body>
 
         <header>
-          @toolbar()
-
-          <a href="@routes.Application.index(ref = ctx.queryRef)">
+          <a href="@routes.Application.index()">
             <h1>Your prismic.io project</h1>
           </a>
 
         </header>
 
         @content
-
-        <footer>
-          @if(!ctx.hasPrivilegedAccess) {
-            <hr> <a href="@routes.Prismic.signin">Sign in to preview changes</a>
-          }
-        </footer>
 
         @* Here, your google analytics script *@
 
