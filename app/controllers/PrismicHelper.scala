@@ -21,13 +21,8 @@ import io.prismic._
  *
  * The debug and error messages emitted by the Scala Kit are redirected
  * to the Play application Logger.
- *
- * It provides an "Action builder" that help to create actions that will query
- * a prismic.io repository.
- *
- * It provides some ready-to-use actions for the OAuth2 workflow.
  */
-object Prismic extends Controller {
+object PrismicHelper {
 
   // -- Define the key name to use for storing the Prismic.io access token into the Play session
   private val ACCESS_TOKEN = "ACCESS_TOKEN"
@@ -63,42 +58,27 @@ object Prismic extends Controller {
     val token = request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token"))
     apiHome(token) map { api =>
       val ref = {
-        request.cookies.get(Experiment.cookieName) map (_.value) flatMap api.experiments.refFromCookie
+        request.cookies.get(Prismic.experimentsCookie) map (_.value) flatMap api.experiments.refFromCookie
       } getOrElse api.master.ref
       Context(api, ref, token, Application.linkResolver(api)(request))
     }
   }
 
-  // -- Action builder
-  def bodyAction[A](bodyParser: BodyParser[A])(block: Prismic.Request[A] => Future[Result]) =
-    Action.async(bodyParser) { implicit request =>
-      {
-        for {
-          ctx <- buildContext()
-          result <- block(Request(request, ctx))
-        } yield result
-      }
-    }
-
-  // -- Alternative action builder for the default body parser
-  def action(block: Prismic.Request[AnyContent] => Future[Result]): Action[AnyContent] =
-    bodyAction(parse.anyContent)(block)
-
   // -- Retrieve the Prismic Context from a request handled by an built using Prismic.action
   def ctx(implicit req: Request[_]) = req.ctx
 
   // -- Fetch the API entry document
-  def apiHome(accessToken: Option[String] = None) =
-    Api.get(config("prismic.api"), accessToken = accessToken, cache = Cache, logger = Logger)
+  def apiHome(token: Option[String] = None) =
+    Api.get(config("prismic.api"), accessToken = token, cache = Cache, logger = Logger)
 
   // -- Helper: Retrieve a single document by Id
-  def getDocument(id: String)(implicit ctx: Prismic.Context): Future[Option[Document]] =
+  def getDocument(id: String)(implicit ctx: PrismicHelper.Context): Future[Option[Document]] =
     ctx.api.forms("everything")
       .query(Predicate.at("document.id", id))
       .ref(ctx.ref).submit() map (_.results.headOption)
 
   // -- Helper: Retrieve several documents by Id
-  def getDocuments(ids: String*)(implicit ctx: Prismic.Context): Future[Seq[Document]] =
+  def getDocuments(ids: String*)(implicit ctx: PrismicHelper.Context): Future[Seq[Document]] =
     ids match {
       case Nil => Future.successful(Nil)
       case ids => ctx.api.forms("everything")
@@ -107,24 +87,16 @@ object Prismic extends Controller {
     }
 
   // -- Helper: Retrieve a single document from its bookmark
-  def getBookmark(bookmark: String)(implicit ctx: Prismic.Context): Future[Option[Document]] =
+  def getBookmark(bookmark: String)(implicit ctx: PrismicHelper.Context): Future[Option[Document]] =
     ctx.api.bookmarks.get(bookmark).map(id => getDocument(id)).getOrElse(Future.successful(None))
 
   // -- Helper: Check if the slug is valid and redirect to the most recent version id needed
-  def checkSlug(document: Option[Document], slug: String)(callback: Either[String, Document] => Result)(implicit r: Prismic.Request[_]) =
+  def checkSlug(document: Option[Document], slug: String)(callback: Either[String, Document] => Result)(implicit r: PrismicHelper.Request[_]) =
     document.collect {
       case document if document.slug == slug         => callback(Right(document))
       case document if document.slugs.contains(slug) => callback(Left(document.slug))
     }.getOrElse {
       Application.PageNotFound
     }
-
-  // -- Preview Action
-  def preview(token: String) = Prismic.action { implicit req =>
-    ctx.api.previewSession(token, ctx.linkResolver, routes.Application.index().url).map { redirectUrl =>
-      Redirect(redirectUrl).withCookies(Cookie(io.prismic.Prismic.previewCookie, token, path = "/", maxAge = Some(30 * 60 * 1000), httpOnly = false))
-    }
-  }
-
 
 }

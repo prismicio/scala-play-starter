@@ -12,7 +12,7 @@ GET     /documents/$id<[-_a-zA-Z0-9]{16}>/:slug     controllers.Application.deta
 GET     /search                                     controllers.Application.search(q: Option[String] ?= None, page: Int ?= 1)
 
 # Preview
-GET     /preview                                    controllers.Prismic.preview(token: String)
+GET     /preview                                    controllers.Application.preview(token: String)
 
 GET     /not-found                                  controllers.Application.brokenLink()
 

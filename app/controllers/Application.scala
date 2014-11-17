@@ -1,6 +1,5 @@
 package controllers
 
-import play.api._
 import play.api.mvc._
 
 import scala.concurrent._
@@ -8,9 +7,9 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import io.prismic._
 
-object Application extends Controller {
+object Application extends Controller with PrismicController {
 
-  import Prismic._
+  import PrismicHelper._
 
   // -- Resolve links to documents
   def linkResolver(api: Api)(implicit request: RequestHeader) = DocumentLinkResolver(api) {
@@ -19,21 +18,21 @@ object Application extends Controller {
   }
 
   // -- Page not found
-  def PageNotFound(implicit ctx: Prismic.Context) = NotFound(views.html.pageNotFound())
+  def PageNotFound(implicit ctx: PrismicHelper.Context) = NotFound(views.html.pageNotFound())
 
-  def brokenLink = Prismic.action { implicit request =>
+  def brokenLink = PrismicAction { implicit request =>
     Future.successful(PageNotFound)
   }
 
   // -- Home page
-  def index(page: Int) = Prismic.action { implicit request =>
+  def index(page: Int) = PrismicAction { implicit request =>
     ctx.api.forms("everything").ref(ctx.ref).pageSize(10).page(page).submit() map { response =>
       Ok(views.html.index(response))
     }
   }
 
   // -- Document detail
-  def detail(id: String, slug: String) = Prismic.action { implicit request =>
+  def detail(id: String, slug: String) = PrismicAction { implicit request =>
     for {
       maybeDocument <- getDocument(id)
     } yield {
@@ -45,12 +44,19 @@ object Application extends Controller {
   }
 
   // -- Basic Search
-  def search(q: Option[String], page: Int) = Prismic.action { implicit request =>
+  def search(q: Option[String], page: Int) = PrismicAction { implicit request =>
     ctx.api.forms("everything")
       .query(Predicate.fulltext("document", q.getOrElse("")))
       .ref(ctx.ref).pageSize(10).page(page).submit() map { response =>
         Ok(views.html.search(q, response))
       }
+  }
+
+  // -- Preview Action
+  def preview(token: String) = PrismicAction { implicit req =>
+    ctx.api.previewSession(token, ctx.linkResolver, routes.Application.index().url).map { redirectUrl =>
+      Redirect(redirectUrl).withCookies(Cookie(Prismic.previewCookie, token, path = "/", maxAge = Some(30 * 60 * 1000), httpOnly = false))
+    }
   }
 
 }
