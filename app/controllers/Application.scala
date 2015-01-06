@@ -13,8 +13,8 @@ object Application extends Controller with PrismicController {
 
   // -- Resolve links to documents
   def linkResolver(api: Api)(implicit request: RequestHeader) = DocumentLinkResolver(api) {
-    case (Fragment.DocumentLink(id, docType, tags, slug, false), maybeBookmarked) => routes.Application.detail(id, slug).absoluteURL()
-    case (link@Fragment.DocumentLink(_, _, _, _, true), _)                        => routes.Application.brokenLink().absoluteURL()
+    case (docLink, maybeBookmarked) if !docLink.isBroken => routes.Application.detail(docLink.id, docLink.slug).absoluteURL()
+    case _ => routes.Application.brokenLink().absoluteURL()
   }
 
   // -- Page not found
