@@ -22,12 +22,10 @@ trait PrismicController {
   // -- Action builder
   def bodyAction[A](bodyParser: BodyParser[A])(block: PrismicHelper.Request[A] => Future[Result]) =
     Action.async(bodyParser) { implicit request =>
-    {
       for {
         ctx <- PrismicHelper.buildContext()
         result <- block(PrismicHelper.Request(request, ctx))
       } yield result
-    }
     }
 
 }
