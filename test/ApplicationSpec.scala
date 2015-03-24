@@ -10,20 +10,49 @@ import play.api.test.Helpers._
  * You can mock out a whole application including requests, plugins etc.
  * For more information, consult the wiki.
  */
-class ApplicationSpec extends Specification {
+object ApplicationSpec extends Specification {
 
-  "Application" should {
-
-    "send 404 on a bad request" in new WithApplication{
+  "Prismic.io application" should {
+    "send 404 on a bad request" in new WithApplication {
       route(FakeRequest(GET, "/boum")) must beNone
     }
 
-    "render the index page" in new WithApplication{
-      val home = route(FakeRequest(GET, "/")).get
+    "render the index page" in new WithApplication {
+      route(FakeRequest(GET, "/")) must beSome.which { res =>
+        status(res) must_== OK and (
+          contentType(res) must beSome.which(_ == "text/html")) and (
+          contentAsString(res) must contain("ganache-specialist"))
 
-      status(home) must equalTo(OK)
-      contentType(home) must beSome.which(_ == "text/html")
-      contentAsString(home) must contain ("Your new application is ready.")
+      }
+    }
+
+    "render the not-found page" in new WithApplication {
+      route(FakeRequest(GET, "/not-found")) must beSome.which { res =>
+        status(res) must_== NOT_FOUND and (
+          contentType(res) must beSome.which(_ == "text/html")) and (
+          contentAsString(res) must contain("Page not found"))
+
+      }
+    }
+
+    "render the search page" in new WithApplication {
+      route(FakeRequest(GET, "/search")) must beSome.which { res =>
+        status(res) must_== OK and (
+          contentType(res) must beSome.which(_ == "text/html")) and (
+          contentAsString(res) must contain("fruit-expert"))
+
+      }
+    }
+
+    "render the vanilla macaron document" in new WithApplication {
+      route(FakeRequest(GET, "/documents/UlfoxUnM0wkXYXbH/vanilla-macaron")).
+        aka("result") must beSome.which { res =>
+          status(res) must_== OK and (
+            contentType(res) must beSome.which(_ == "text/html")) and (
+            contentAsString(res).
+              aka("content") must contain("pure extract of Madagascar vanilla"))
+
+        }
     }
   }
 }
