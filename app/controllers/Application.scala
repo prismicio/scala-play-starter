@@ -7,15 +7,20 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import io.prismic._
 
-object Application extends Controller with PrismicController {
-
-  import PrismicHelper._
+object Application {
 
   // -- Resolve links to documents
   def linkResolver(api: Api)(implicit request: RequestHeader) = DocumentLinkResolver(api) {
     case (docLink, maybeBookmarked) if !docLink.isBroken => routes.Application.detail(docLink.id, docLink.slug).absoluteURL()
     case _ => routes.Application.brokenLink().absoluteURL()
   }
+
+}
+
+class Application extends Controller with PrismicController {
+
+  import PrismicHelper._
+
 
   // -- Page not found
   def PageNotFound(implicit ctx: PrismicHelper.Context) = NotFound(views.html.pageNotFound())
@@ -60,4 +65,3 @@ object Application extends Controller with PrismicController {
   }
 
 }
-

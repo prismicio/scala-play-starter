@@ -38,6 +38,8 @@ object PrismicHelper {
   private def config(key: String) =
     Play.configuration.getString(key).getOrElse(sys.error(s"Missing configuration [$key]"))
 
+  def endpoint = config("prismic.api")
+
   // -- Define a `Prismic request` that contain both the original request and the Prismic call context
   case class Request[A](request: play.api.mvc.Request[A], ctx: Context) extends WrappedRequest(request)
 
@@ -66,7 +68,7 @@ object PrismicHelper {
 
   // -- Fetch the API entry document
   def apiHome(token: Option[String] = None) =
-    Api.get(config("prismic.api"), accessToken = token, cache = Cache, logger = Logger)
+    Api.get(endpoint, accessToken = token, cache = Cache, logger = Logger)
 
   // -- Helper: Retrieve a single document by Id
   def getDocument(id: String)(implicit ctx: PrismicHelper.Context): Future[Option[Document]] =
@@ -93,7 +95,7 @@ object PrismicHelper {
       case document if document.slug == slug         => callback(Right(document))
       case document if document.slugs.contains(slug) => callback(Left(document.slug))
     }.getOrElse {
-      Application.PageNotFound
+      Results.NotFound(views.html.pageNotFound())
     }
 
 }
