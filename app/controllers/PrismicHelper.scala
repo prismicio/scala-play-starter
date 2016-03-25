@@ -56,9 +56,9 @@ object PrismicHelper {
   def buildContext()(implicit request: RequestHeader) = {
     val token = request.session.get(ACCESS_TOKEN).orElse(Play.configuration.getString("prismic.token"))
     apiHome(token) map { api =>
-      val ref = {
-        request.cookies.get(Prismic.experimentsCookie) map (_.value) flatMap api.experiments.refFromCookie
-      } getOrElse api.master.ref
+      val experimentRef: Option[String] = request.cookies.get(Prismic.experimentsCookie).map(_.value).flatMap(api.experiments.refFromCookie)
+      val previewRef: Option[String] = request.cookies.get(Prismic.previewCookie).map(_.value)
+      val ref: String = previewRef.orElse(experimentRef).getOrElse(api.master.ref)
       Context(api, ref, token, Application.linkResolver(api)(request))
     }
   }
