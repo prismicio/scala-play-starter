@@ -1,9 +1,9 @@
-@(document: io.prismic.Document)(implicit ctx: PrismicHelper.Context)
+@(document: io.prismic.Document, api: io.prismic.Api)(implicit request: RequestHeader)
 
 @main(s"Document detail ${document.slug}") {
 
     <article id="@document.id" data-wio-id="@document.id">
-      @Html(document.asHtml(ctx.linkResolver))
+      @Html(document.asHtml(Application.linkResolver(api)))
     </article>
 
 }

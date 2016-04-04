@@ -1,4 +1,4 @@
-@(q: Option[String], response: io.prismic.Response)(implicit ctx: PrismicHelper.Context)
+@(q: Option[String], response: io.prismic.Response, api: io.prismic.Api)(implicit req: RequestHeader)
 
 @main("Search results") {
 
@@ -13,7 +13,7 @@
   <ul>
     @response.results.map { document =>
       <li>
-        <a href="@ctx.linkResolver(document)">@document.slug</a>
+        <a href="@(Application.linkResolver(api))(document)">@document.slug</a>
       </li>
     }
   </ul>
