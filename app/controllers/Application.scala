@@ -70,7 +70,7 @@ class Application @Inject() (configuration: Configuration) extends Controller {
     for {
       api <- fetchApi
       context = ctx(api)
-      maybeDocument <- api.forms("everything").ref(ref(api)).pageSize(1).submit().map(_.results.headOption)
+      maybeDocument <- api.forms("everything").query(Predicate.at("document.id", id)).ref(ref(api)).pageSize(1).submit().map(_.results.headOption)
     } yield {
       checkSlug(maybeDocument, slug, context) {
         case Left(newSlug)   => MovedPermanently(routes.Application.detail(id, newSlug).url)
