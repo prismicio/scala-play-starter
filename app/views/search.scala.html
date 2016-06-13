@@ -1,6 +1,6 @@
-@(q: Option[String], response: io.prismic.Response, api: io.prismic.Api)(implicit req: RequestHeader)
+@(q: Option[String], response: io.prismic.Response)(implicit req: RequestHeader, ctx: Context)
 
-@main("Search results") {
+@main("Search results", Some(ctx)) {
 
   <h1>
     @response.resultsSize match {
@@ -13,7 +13,7 @@
   <ul>
     @response.results.map { document =>
       <li>
-        <a href="@(Application.linkResolver(api))(document)">@document.slug</a>
+        <a href="@(ctx.linkResolver)(document)">@document.slug</a>
       </li>
     }
   </ul>

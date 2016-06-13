@@ -1,6 +1,6 @@
-@(response: io.prismic.Response)
+@(response: io.prismic.Response)(implicit ctx: Context)
 
-@main("All documents") {
+@main("All documents", Some(ctx)) {
 
   <form action="@routes.Application.search()" method="GET">
     <input type="text" name="q" value="">

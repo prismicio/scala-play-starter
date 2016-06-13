@@ -10,15 +10,18 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import io.prismic._
 
-object Application {
-
+case class Context(
+  endpoint: String,
+  api: Api
+) {
   // -- Resolve links to documents
-  def linkResolver(api: Api)(implicit request: RequestHeader) = DocumentLinkResolver(api) {
+  def linkResolver(implicit request: RequestHeader) = DocumentLinkResolver(api) {
     case (docLink, maybeBookmarked) if !docLink.isBroken => routes.Application.detail(docLink.id, docLink.slug).absoluteURL()
     case _ => routes.Application.brokenLink().absoluteURL()
   }
 
 }
+
 
 @Singleton
 class Application @Inject() (configuration: Configuration) extends Controller {
@@ -43,6 +46,8 @@ class Application @Inject() (configuration: Configuration) extends Controller {
     previewRef.orElse(experimentRef).getOrElse(api.master.ref)
   }
 
+  def ctx(api: Api) = Context(endpoint, api)
+
   // -- Page not found
   def PageNotFound = NotFound(views.html.pageNotFound())
 
@@ -56,7 +61,7 @@ class Application @Inject() (configuration: Configuration) extends Controller {
       api <- fetchApi
       response <- api.forms("everything").ref(ref(api)).pageSize(10).page(page).submit()
     } yield {
-      Ok(views.html.index(response))
+      Ok(views.html.index(response)(ctx(api)))
     }
   }
 
@@ -64,11 +69,12 @@ class Application @Inject() (configuration: Configuration) extends Controller {
   def detail(id: String, slug: String) = Action.async { implicit request =>
     for {
       api <- fetchApi
+      context = ctx(api)
       maybeDocument <- api.forms("everything").ref(ref(api)).pageSize(1).submit().map(_.results.headOption)
     } yield {
-      checkSlug(maybeDocument, slug) {
+      checkSlug(maybeDocument, slug, context) {
         case Left(newSlug)   => MovedPermanently(routes.Application.detail(id, newSlug).url)
-        case Right(document) => Ok(views.html.detail(document, api))
+        case Right(document) => Ok(views.html.detail(document)(request, context))
       }
     }
   }
@@ -79,7 +85,7 @@ class Application @Inject() (configuration: Configuration) extends Controller {
       api <- fetchApi
       response <- api.forms("everything").query(Predicate.fulltext("document", q.getOrElse(""))).ref(ref(api)).pageSize(10).page(page).submit()
     } yield {
-      Ok(views.html.search(q, response, api))
+      Ok(views.html.search(q, response)(request, ctx(api)))
     }
   }
 
@@ -87,14 +93,15 @@ class Application @Inject() (configuration: Configuration) extends Controller {
   def preview(token: String) = Action.async { implicit req =>
     for {
       api <- fetchApi
-      redirectUrl <- api.previewSession(token, Application.linkResolver(api), routes.Application.index().url)
+      context = ctx(api)
+      redirectUrl <- api.previewSession(token, context.linkResolver, routes.Application.index().url)
     } yield {
       Redirect(redirectUrl).withCookies(Cookie(Prismic.previewCookie, token, path = "/", maxAge = Some(30 * 60 * 1000), httpOnly = false))
     }
   }
 
   // -- Helper: Check if the slug is valid and redirect to the most recent version id needed
-  def checkSlug(document: Option[Document], slug: String)(callback: Either[String, Document] => Result) =
+  def checkSlug(document: Option[Document], slug: String, ctx: Context)(callback: Either[String, Document] => Result) =
     document.collect {
       case document if document.slug == slug         => callback(Right(document))
       case document if document.slugs.contains(slug) => callback(Left(document.slug))
